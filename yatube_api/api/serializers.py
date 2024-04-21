@@ -23,6 +23,16 @@ class GroupSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class FollowValidator:
+    requires_context = True
+
+    def __call__(self, data, serializer_field):
+        if (serializer_field.context.get(
+           'request').user == data.get('following')):
+            raise serializers.ValidationError(
+                'Невозможно оформить подписку на самого себя')
+
+
 class FollowSerializer(serializers.ModelSerializer):
     user = serializers.SlugRelatedField(
         slug_field='username',
@@ -39,14 +49,9 @@ class FollowSerializer(serializers.ModelSerializer):
             UniqueTogetherValidator(
                 queryset=Follow.objects.all(),
                 fields=('user', 'following'),
-                message='Вы уже подписаны на указанного пользователя')
+                message='Вы уже подписаны на указанного пользователя'),
+            FollowValidator()
         ]
-
-    def validate(self, data):
-        if self.context['request'].user == data.get('following'):
-            raise serializers.ValidationError(
-                'Невозможно оформить подписку на самого себя')
-        return data
 
 
 class CommentSerializer(serializers.ModelSerializer):
